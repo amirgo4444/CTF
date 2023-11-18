@@ -2,7 +2,7 @@
 
 For this challenge we recieved a zipped file containing a PE32 executable:
 
-![Screenshot from 2023-11-15 13-16-22](./src/Screenshot from 2023-11-15 13-16-22.png)
+![Image](./src/Screenshot from 2023-11-15 13-16-22.png)
 
 The description from HTB for this challenge was :
 "Static-Analysis on this program didn't reveal much. There must be a better way to approach this..." so we could assume that this challenge would involve some sort of dynamic analysis of the binary (IDA is my personal favourite), but enough guesses lets go to work!
