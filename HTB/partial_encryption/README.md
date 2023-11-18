@@ -2,7 +2,7 @@
 
 For this challenge we recieved a zipped file containing a PE32 executable:
 
-![Image](1.png)
+![Image](src/1.png)
 
 The description from HTB for this challenge was :
 "Static-Analysis on this program didn't reveal much. There must be a better way to approach this..." so we could assume that this challenge would involve some sort of dynamic analysis of the binary (IDA is my personal favourite), but enough guesses lets go to work!
@@ -17,7 +17,7 @@ Usually before starting to dissect every inch of the binary im trying to look fo
 
 Double clicking it didnt result to anything so I tried running it from the command line, first without any arguments than with some:
 
-![Screenshot (9)](./src/Screenshot (9).png)
+![Screenshot (9)](src/Screenshot (9).png)
 
 As you can see just from the few attempts above when running it without arguments the output is in the form of ./<executable_name> <argument1>  suggesting the the binary does expect a single argument, when running it with more than one argument the output is the same.
 
@@ -25,7 +25,7 @@ After that i tried fuzzing the input a bit to maybe look for some bufferoverflow
 
 I also tried running FLOSS to check for some interesting strings but that didnt yield much as well...
 
-![Screenshot (2)](./src/Screenshot (2).png)
+![Screenshot (2)](src/Screenshot (2).png)
 
 **Thoughs:**
 
@@ -45,7 +45,7 @@ Ok so its time for the real deal! Lets open it in IDA and look at what actually 
 
 After openning it in ida we look at the main function, where there are couple of other function calls with some wiered IDA generated names, I put break points on all of them and started to execute the file with variuos inputs to see when and where i land on each of them.
 
-![Screenshot (13)](./src/Screenshot (13).png)
+![Screenshot (13)](src/Screenshot (13).png)
 
 
 
@@ -54,18 +54,18 @@ Each function gets a pointer to putc and exit it than tests something about the 
 
 I renamed the function accordingly as you can see:
 
-![Screenshot (22)](./src/Screenshot (22).png)
+![Screenshot (22)](src/Screenshot (22).png)
 
 So the test_input is the function were interested in , after checking argc == 1(check_argc) and argv[1].length > 0x16 (check_input_len) were left to validate the given input with the expected one.
 
 Once again VirtualAlloc and VirtualProtect sets our to be executed buffer as executable ,than write code to that buffer and call it. So now the idea was to set a breaking point when our buffer is called and see how the input is validated.
 
-![Screenshot (21)](./src/Screenshot (21).png)
+![Screenshot (21)](src/Screenshot (21).png)
 
 When looking at the validation code we can literally see our input tested one byte at a time against a hard coded byte.
 Our input start address (for now the string AAAA... 0x20 times because i needed anything larger than 0x16 to pass the previous check) stored at RAX and RCX stores the current tested byte offset.
 
-![Screenshot (20)](./src/Screenshot (20).png)
+![Screenshot (20)](src/Screenshot (20).png)
 
 As you can see from the picture we compare it to the ascii value of the character 'H' (0x48) and it does it for every byte of the input against the expected value which we now know is the flag itself (HTB flags always looks like 'HTB{<random bytes>}'), sincewe still dont know the expected value and its not just held as a string in our code (tested one byte at a time) my plan was to patch at runtime the ZF register to manipulate RIP to jump to the next cmp instruction each time even with a wrong byte comparison, you can either do it manually each time from the register view or runing the IDC command "SetRegValue(1,'zf')".
 Now basically all there is left to do it write which byte (char) at what offset (RCX) from our input is compared against to get the flag!
